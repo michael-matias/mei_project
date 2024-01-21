@@ -1,0 +1,82 @@
+version: '3.8'
+services:
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+
+  node-red:
+    image: nodered/node-red
+    ports:
+      - "1880:1880"
+    volumes:
+      - node-red-data:/data
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  device-info-service:
+    build: ./device_info_service
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+
+  api-gateway-service:
+    build: ./api_gateway_service
+    ports:
+      - "443:443"
+
+  udp-service:
+    build: ./udp_service
+    ports:
+      - "41234:41234/udp"
+
+  data-processing-service:
+    build: ./data_processing_service
+    depends_on:
+      - kafka
+
+  user-authentication-service:
+    build: ./user_authentication_service
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongodb
+
+  user-info-service:
+    build: ./user_info_service
+    ports:
+      - "3002:3002"
+    depends_on:
+      - mongodb
+
+  api-key-service:
+    build: ./api_key_service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mongodb
+
+  frontend-app:
+    build: ./frontend_app
+    ports:
+      - "30000:443"
+
+volumes:
+  node-red-data:
+  mongodb-data:
